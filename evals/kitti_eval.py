@@ -85,32 +85,32 @@ def evaluate(hypes, sess, image_pl, calib_pl, xy_scale_pl, softmax):
         eval_list.append(('Post (msec)', 1000*dt2))
         return eval_list, image_list
 
-    res_file = os.path.join(val_path, "stats_car_detection.txt")
+    # res_file = os.path.join(val_path, "stats_car_detection.txt")
 
-    with open(res_file) as f:
-        for mode in ['easy', 'medium', 'hard']:
-            line = f.readline()
-            result = np.array(line.rstrip().split(" ")).astype(float)
-            mean = np.mean(result)
-            eval_list.append(("val   " + mode, mean))
+    # with open(res_file) as f:
+    #     for mode in ['easy', 'medium', 'hard']:
+    #         line = f.readline()
+    #         result = np.array(line.rstrip().split(" ")).astype(float)
+    #         mean = np.mean(result)
+    #         eval_list.append(("val   " + mode, mean))
 
     pred_annolist, image_list2, dt, dt2 = get_results(
         hypes, sess, image_pl, calib_pl, xy_scale_pl, softmax, False)
 
     val_path = make_val_dir(hypes, False)
     subprocess.check_call([eval_cmd, val_path, label_dir])
-    res_file = os.path.join(val_path, "stats_car_detection.txt")
+    # res_file = os.path.join(val_path, "stats_car_detection.txt")
 
-    with open(res_file) as f:
-        for mode in ['easy', 'medium', 'hard']:
-            line = f.readline()
-            result = np.array(line.rstrip().split(" ")).astype(float)
-            mean = np.mean(result)
-            eval_list.append(("train   " + mode, mean))
+    # with open(res_file) as f:
+    #     for mode in ['easy', 'medium', 'hard']:
+    #         line = f.readline()
+    #         result = np.array(line.rstrip().split(" ")).astype(float)
+    #         mean = np.mean(result)
+    #         eval_list.append(("train   " + mode, mean))
 
-    eval_list.append(('Speed (msec)', 1000*dt))
-    eval_list.append(('Speed (fps)', 1/dt))
-    eval_list.append(('Post (msec)', 1000*dt2))
+    # eval_list.append(('Speed (msec)', 1000*dt))
+    # eval_list.append(('Speed (fps)', 1/dt))
+    # eval_list.append(('Post (msec)', 1000*dt2))
 
     return eval_list, image_list
 
@@ -230,7 +230,7 @@ def get_results(hypes, sess, image_pl, calib_pl, xy_scale_pl, decoded_logits, va
             use_stitching=True, rnn_len=hypes['rnn_len'],
             min_conf=0.50, tau=hypes['tau'], color_acc=(0, 255, 0))
 
-        if validation and i % 15 == 0:
+        if validation:
             image_name = os.path.basename(pred_anno.imageName)
             image_name = os.path.join(img_dir, image_name)
             scp.misc.imsave(image_name, new_img)
@@ -259,18 +259,18 @@ def get_results(hypes, sess, image_pl, calib_pl, xy_scale_pl, decoded_logits, va
         pred_annolist.append(pred_anno)
 
     start_time = time.time()
-    for i in xrange(100):
-        (np_pred_boxes, np_pred_confidence, np_pred_depths, np_pred_locations) = \
-         sess.run([pred_boxes, pred_confidences, pred_depths, pred_locations], feed_dict=feed)
+    # for i in xrange(100):
+    #     (np_pred_boxes, np_pred_confidence, np_pred_depths, np_pred_locations) = \
+    #      sess.run([pred_boxes, pred_confidences, pred_depths, pred_locations], feed_dict=feed)
     dt = (time.time() - start_time)/100
 
-    start_time = time.time()
-    for i in xrange(100):
-        utils.train_utils.compute_rectangels(
-            hypes, np_pred_confidences,
-            np_pred_boxes, np_pred_depths, np_pred_locations, show_removed=False,
-            use_stitching=True, rnn_len=hypes['rnn_len'],
-            min_conf=0.001, tau=hypes['tau'])
+    # start_time = time.time()
+    # for i in xrange(100):
+    #     utils.train_utils.compute_rectangels(
+    #         hypes, np_pred_confidences,
+    #         np_pred_boxes, np_pred_depths, np_pred_locations, show_removed=False,
+    #         use_stitching=True, rnn_len=hypes['rnn_len'],
+    #         min_conf=0.001, tau=hypes['tau'])
     dt2 = (time.time() - start_time)/100
 
     return pred_annolist, image_list, dt, dt2

@@ -6,6 +6,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import cv2
 import imp
 import json
 import logging
@@ -71,8 +72,11 @@ def initialize_training_folder(hypes, files_dir="model_files", logging=True):
         Hyperparameters
     """
     target_dir = os.path.join(hypes['dirs']['output_dir'], files_dir)
-    if not os.path.exists(target_dir):
-        os.makedirs(target_dir)
+    # force dete output folder and recreate it
+    if os.path.exists(target_dir):
+        import shutil
+        shutil.rmtree(target_dir)
+    os.makedirs(target_dir)
 
     image_dir = os.path.join(hypes['dirs']['output_dir'], "images")
     if not os.path.exists(image_dir):
@@ -226,6 +230,9 @@ def run_training(hypes, modules, tv_graph, tv_sess, start_step=0):
         lr = solver.get_learning_rate(hypes, step)
         feed_dict = {tv_graph['learning_rate']: lr, 
                      hypes['solver']['regression_weights']: regression_weights}
+        
+        
+        """
         if step % display_iter:
             sess.run([tv_graph['train_op']], feed_dict=feed_dict)
 
@@ -269,6 +276,7 @@ def run_training(hypes, modules, tv_graph, tv_sess, start_step=0):
             eval_dict = zip(eval_names, smoothed_results)
             _write_eval_dict_to_summary(eval_dict, 'Eval/smooth',
                                         summary_writer, step)
+        """
 
         # Do a evaluation and print the current state
         if (step) % eval_iter == 0 \
@@ -280,47 +288,143 @@ def run_training(hypes, modules, tv_graph, tv_sess, start_step=0):
             eval_dict, images = modules['eval'].evaluate(
                 hypes, sess, tv_graph['image_pl'], tv_graph['calib_pl'], tv_graph['xy_scale_pl'],  tv_graph['inf_out'])
 
-            _write_images_to_summary(images, summary_writer, step)
-            logging.info("Evaluation Finished. All results will be saved to:")
-            logging.info(hypes['dirs']['output_dir'])
+            # _write_images_to_summary(images, summary_writer, step)
+            # logging.info("Evaluation Finished. All results will be saved to:")
+            # logging.info(hypes['dirs']['output_dir'])
 
-            if images is not None and len(images) > 0:
+            # if images is not None and len(images) > 0:
 
-                name = str(n % 10) + '_' + images[0][0]
-                image_file = os.path.join(hypes['dirs']['image_dir'], name)
-                scp.misc.imsave(image_file, images[0][1])
-                n = n + 1
+            #     name = str(n % 10) + '_' + images[0][0]
+            #     image_file = os.path.join(hypes['dirs']['image_dir'], name)
+            #     scp.misc.imsave(image_file, images[0][1])
+            #     n = n + 1
 
-            logging.info('Raw Results:')
-            utils.print_eval_dict(eval_dict, prefix='(raw)   ')
-            _write_eval_dict_to_summary(eval_dict, 'Evaluation/raw',
-                                        summary_writer, step)
+            # logging.info('Raw Results:')
+            # utils.print_eval_dict(eval_dict, prefix='(raw)   ')
+            # _write_eval_dict_to_summary(eval_dict, 'Evaluation/raw',
+            #                             summary_writer, step)
 
-            logging.info('Smooth Results:')
-            names, res = zip(*eval_dict)
-            smoothed = py_smoother.update_weights(res)
-            eval_dict = zip(names, smoothed)
-            utils.print_eval_dict(eval_dict, prefix='(smooth)')
-            _write_eval_dict_to_summary(eval_dict, 'Evaluation/smoothed',
-                                        summary_writer, step)
+            # logging.info('Smooth Results:')
+            # names, res = zip(*eval_dict)
+            # smoothed = py_smoother.update_weights(res)
+            # eval_dict = zip(names, smoothed)
+            # utils.print_eval_dict(eval_dict, prefix='(smooth)')
+            # _write_eval_dict_to_summary(eval_dict, 'Evaluation/smoothed',
+            #                             summary_writer, step)
 
             # Reset timer
             start_time = time.time()
+        
+        # NEW: resize images and bounding box results
+        input_image_dir = os.path.join(hypes['dirs']['data_dir'], hypes['data']['input_dir'])
+        input_image_dir_resized = os.path.join(hypes['dirs']['output_dir'], 'val_images') + "_resized"
+        output_label_dir = os.path.join(hypes['dirs']['output_dir'], 'val_out')
+        output_label_resized_dir = output_label_dir + "_resized" 
+        # - create resized image directories
+        if not os.path.exists(input_image_dir_resized):
+            os.makedirs(input_image_dir_resized)
+        if not os.path.exists(output_label_resized_dir):
+            os.makedirs(output_label_resized_dir)
+        # - get all text fiels from output_label_dir
+        output_label_files = [f for f in os.listdir(output_label_dir) if os.path.isfile(os.path.join(output_label_dir, f))]
+        input_image_files = [f for f in os.listdir(input_image_dir) if os.path.isfile(os.path.join(input_image_dir, f))]
+        # - for each file read in contents and resize the bounding boxes to the image size in input_image_dir_resized
+        for output_label_file in output_label_files:
+            # read each line into a list
+            with open(os.path.join(output_label_dir, output_label_file), 'r') as f:
+                lines = f.readlines()
+            
+            # find the corresponding image file in input_image_dir
+            for input_image_file in input_image_files:
+                if input_image_file.split('.')[0] == output_label_file.split('.')[0]:
+                    image_name = input_image_file
+                    break
+            
+            # read in the image and find original dimensionso
+            image = scp.misc.imread(os.path.join(input_image_dir, image_name))
+            height, width = image.shape[:2]
 
-        # Save a checkpoint periodically.
-     
-        if (step) % save_iter == 0 and step > 0 or \
-           (step + 1) == hypes['solver']['max_steps']:
-            # write checkpoint to disk
-            checkpoint_path = os.path.join(hypes['dirs']['output_dir'],
-                                           'model.ckpt')
-            tv_sess['saver'].save(sess, checkpoint_path, global_step=step)
-            # Reset timer
-            start_time = time.time()
+            # resized image dimensions
+            resized_height = hypes['resize']['target_height']
+            max_height = hypes['resize']['max_height']
+            max_width = hypes['resize']['max_width']
+            height_ratio = resized_height / height
+            resized_width = int(width * height_ratio)
+
+            resized_lines = []
+            bounding_boxes = []
+            for line in lines:
+                #Values    Name      Description
+                # ----------------------------------------------------------------------------
+                #    1    type         Describes the type of object: 'Car', 'Van', 'Truck',
+                #                      'Pedestrian', 'Person_sitting', 'Cyclist', 'Tram',
+                #                      'Misc' or 'DontCare'
+                #    1    truncated    Float from 0 (non-truncated) to 1 (truncated), where
+                #                      truncated refers to the object leaving image boundaries
+                #    1    occluded     Integer (0,1,2,3) indicating occlusion state:
+                #                      0 = fully visible, 1 = partly occluded
+                #                      2 = largely occluded, 3 = unknown
+                #    1    alpha        Observation angle of object, ranging [-pi..pi]
+                #    4    bbox         2D bounding box of object in the image (0-based index):
+                #                      contains left, top, right, bottom pixel coordinates
+                #    3    dimensions   3D object dimensions: height, width, length (in meters)
+                #    3    location     3D object location x,y,z in camera coordinates (in meters)
+                #    1    rotation_y   Rotation ry around Y-axis in camera coordinates [-pi..pi]
+                #    1    score        Only for results: Float, indicating confidence in
+                #                      detection, needed for p/r curves, higher is better. 
+
+                # Resize only the bounding box values copy the rest
+                values = line.split(' ')
+                # resize bounding box values the original image was resized down, centered and balck borders were added where necessary to get an image of 1224 x 370 
+                horizontal_border = (max_width - resized_width) // 2
+                vertical_border = (max_height - resized_height) // 2
+                left  = (float(values[4]) - horizontal_border) / height_ratio
+                top   = (float(values[5]) - vertical_border) / height_ratio
+                right = (float(values[6]) - horizontal_border) / height_ratio
+                bottom = (float(values[7]) - vertical_border) / height_ratio
+
+                # write the new values to values array
+                values[4] = str(left)
+                values[5] = str(top)
+                values[6] = str(right)
+                values[7] = str(bottom)
+
+                # append the line to the new lines
+                resized_lines.append(' '.join(values))
+
+                # add the bounding box to the list of bounding boxes
+                bounding_boxes.append([(int(left), int(top)), (int(right), int(bottom))])
+
+
+            # write the new lines to a new file
+            with open(os.path.join(output_label_resized_dir, output_label_file), 'w') as f:
+                f.write('\n'.join(resized_lines))
+
+            # read in image data with cv2
+            image_data = cv2.imread(os.path.join(input_image_dir, image_name))
+            # add a bounding box to the image
+            for box in bounding_boxes:
+                cv2.rectangle(image_data, box[0], box[1], (0, 255, 0), 5)
+                # save the image to the resized image directory
+            cv2.imwrite(os.path.join(input_image_dir_resized, image_name), image_data)
+
+        # NEW: quit after evaluating to just do inference
+        if step == 0:
+            break
+        
+        # # Save a checkpoint periodically.
+        # if (step) % save_iter == 0 and step > 0 or \
+        #    (step + 1) == hypes['solver']['max_steps']:
+        #     # write checkpoint to disk
+        #     checkpoint_path = os.path.join(hypes['dirs']['output_dir'],
+        #                                    'model.ckpt')
+        #     tv_sess['saver'].save(sess, checkpoint_path, global_step=step)
+        #     # Reset timer
+        #     start_time = time.time()
       
-        if step % image_iter == 0 and step > 0 or \
-           (step + 1) == hypes['solver']['max_steps']:
-            _write_images_to_disk(hypes, images, step)
+        # if step % image_iter == 0 and step > 0 or \
+        #    (step + 1) == hypes['solver']['max_steps']:
+        #     _write_images_to_disk(hypes, images, step)
 
 
 def _print_training_status(hypes, step, loss_value, start_time, lr):
@@ -488,8 +592,11 @@ def main(_):
     logging.info("Initialize training folder")
     initialize_training_folder(hypes)
     maybe_download_and_extract(hypes)
-    logging.info("Start training")
-    do_training(hypes)
+
+
+
+    # logging.info("Start training")
+    # do_training(hypes)
 
 
 if __name__ == '__main__':

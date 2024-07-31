@@ -1,3 +1,5 @@
+# cython: language_level=2
+
 from libcpp.vector cimport vector
 from libcpp.set cimport set
 from rect import Rect as PyRect

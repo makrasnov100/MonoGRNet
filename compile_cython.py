@@ -1,4 +1,5 @@
 import os
+
 # build Cython module
 os.system('cd ./include/utils/ && make')
 

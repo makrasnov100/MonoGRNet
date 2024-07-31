@@ -1,17 +1,27 @@
 {
     "model": {
-    "input_file": "../inputs/kitti_input.py",
-    "architecture_file" : "../encoder/vgg.py",
-    "objective_file" : "../decoder/fastBox.py",
-    "optimizer_file" : "../optimizer/generic_optimizer.py",
-    "evaluator_file" : "../evals/kitti_eval.py"
+        "input_file": "../inputs/kitti_input.py",
+        "architecture_file": "../encoder/vgg.py",
+        "objective_file": "../decoder/fastBox.py",
+        "optimizer_file": "../optimizer/generic_optimizer.py",
+        "evaluator_file": "../evals/kitti_eval.py"
+    },
+    "resize": {
+        "target_height": 170,
+        "max_height": 370,
+        "max_width": 1224
     },
     "data": {
         "train_file": "KittiBox/train.txt",
         "val_file": "KittiBox/val.txt",
         "truncate_data": false,
         "eval_cmd": "../submodules/KittiEvaluation/./evaluate_object",
-        "label_dir": "KittiBox/training/label_2"
+        "label_dir": "KittiBox/training/label_2",
+        "input_dir": "KittiBox/training/input",
+        "calib_dir": "KittiBox/training/calib",
+        "val_dir": "KittiBox/training/image_2",
+        "custom_image_dir": "training/image_2",
+        "custom_label_dir": "training/label_2"
     },
     "logging": {
         "display_iter": 500,
@@ -24,17 +34,22 @@
     "arch": {
         "deep_feat": "pool5"
     },
-    "path": ["../include"],
+    "path": [
+        "../include"
+    ],
     "solver": {
         "opt": "Adam",
         "use_jitter": true,
         "rnd_seed": 1,
-        "epsilon": 0.00001, 
+        "epsilon": 0.00001,
         "learning_rate": 1e-4,
-        "learning_rate_step": null, 
+        "learning_rate_step": null,
         "hungarian_iou": 0.35,
         "weights": "",
-        "head_weights": [1.0, 0.1],
+        "head_weights": [
+            1.0,
+            0.1
+        ],
         "max_steps": 96000
     },
     "pretrained": "data/model_3D",
@@ -44,13 +59,21 @@
     "biggest_box_px": 10000,
     "early_feat_channels": 256,
     "rezoom_change_loss": "center",
-    "rezoom_w_coords": [-0.25, 0, 0.25],
-    "rezoom_h_coords": [-0.25, 0, 0.25],
+    "rezoom_w_coords": [
+        -0.25,
+        0,
+        0.25
+    ],
+    "rezoom_h_coords": [
+        -0.25,
+        0,
+        0.25
+    ],
     "image_height": 384,
-    "image_width": 1248, 
+    "image_width": 1248,
     "grid_width": 39,
     "grid_height": 12,
-    "batch_size": 8, 
+    "batch_size": 8,
     "tau": 0.35,
     "scale_down": 0.1,
     "focus_size": 1.8,
