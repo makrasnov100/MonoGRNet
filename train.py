@@ -93,7 +93,10 @@ def do_custom_eval_setup(hypes):
         calib_path = os.path.join(calib_dir, calib_name)
         global_calib_path = os.path.join(hypes['dirs']['data_dir'], "global_config.txt")
         # make directory if it does not exist
-        os.makedirs(calib_dir, exist_ok=True)
+        try:
+            os.makedirs(calib_dir)
+        except OSError:
+            pass
         with open(calib_path, 'w') as f:
             with open(global_calib_path, 'r') as global_f:
                 f.write(global_f.read())
@@ -101,7 +104,10 @@ def do_custom_eval_setup(hypes):
         label_name = image.split('.')[0] + ".txt"
         label_dir = os.path.join(hypes['dirs']['data_dir'], hypes['data']['label_dir'])
         label_path = os.path.join(label_dir, label_name)
-        os.makedirs(label_dir, exist_ok=True)
+        try:
+            os.makedirs(label_dir)
+        except OSError:
+            pass
         with open(label_path, 'w') as f:
             f.write("Car 1.00 0 2.52 0.00 222.42 211.82 374.00 1.52 1.54 3.68 -2.80 1.76 1.74 1.57")
             
