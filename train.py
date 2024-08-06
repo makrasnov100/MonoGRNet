@@ -86,6 +86,11 @@ def do_custom_eval_setup(hypes):
             img = img[:, border:width - border]
 
         # Save image and return new path
+        # - create directory if it does not exist
+        try:
+            os.makedirs(val_data_dir)
+        except OSError:
+            pass
         # - save image to new path
         cv2.imwrite(output_path, img)
         # - check by printing list of files in output directory
