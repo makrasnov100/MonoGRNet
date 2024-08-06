@@ -89,14 +89,19 @@ def do_custom_eval_setup(hypes):
         cv2.imwrite(output_path, img)
         # - save a placeholder calib file
         calib_name = image.split('.')[0] + ".txt"
-        calib_path = os.path.join(hypes['dirs']['data_dir'], hypes['data']['calib_dir'], calib_name)
+        calib_dir = os.path.join(hypes['dirs']['data_dir'], hypes['data']['calib_dir'])
+        calib_path = os.path.join(calib_dir, calib_name)
         global_calib_path = os.path.join(hypes['dirs']['data_dir'], "global_config.txt")
+        # make directory if it does not exist
+        os.makedirs(calib_dir, exist_ok=True)
         with open(calib_path, 'w') as f:
             with open(global_calib_path, 'r') as global_f:
                 f.write(global_f.read())
         # - save a placeholder label file
         label_name = image.split('.')[0] + ".txt"
-        label_path = os.path.join(hypes['dirs']['data_dir'], hypes['data']['label_dir'], label_name)
+        label_dir = os.path.join(hypes['dirs']['data_dir'], hypes['data']['label_dir'])
+        label_path = os.path.join(label_dir, label_name)
+        os.makedirs(label_dir, exist_ok=True)
         with open(label_path, 'w') as f:
             f.write("Car 1.00 0 2.52 0.00 222.42 211.82 374.00 1.52 1.54 3.68 -2.80 1.76 1.74 1.57")
             
