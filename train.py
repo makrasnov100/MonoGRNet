@@ -59,6 +59,7 @@ def do_custom_eval_setup(hypes):
     
     # Get all images from the directory
     images = [f for f in os.listdir(full_input_dir) if os.path.isfile(os.path.join(full_input_dir, f))]
+    print("Inference Images: ")
     print(images)
     val_file_lines = []
     for image in images:
@@ -87,6 +88,9 @@ def do_custom_eval_setup(hypes):
         # Save image and return new path
         # - save image to new path
         cv2.imwrite(output_path, img)
+        # - check by printing list of files in output directory
+        print("Output Directory Files: ")
+        print(os.listdir(val_data_dir))
         # - save a placeholder calib file
         calib_name = image.split('.')[0] + ".txt"
         calib_dir = os.path.join(hypes['dirs']['data_dir'], hypes['data']['calib_dir'])
